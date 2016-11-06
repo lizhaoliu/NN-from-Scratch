@@ -71,14 +71,11 @@ class NeuralNet:
         :param x: A batch of training data, in shape [batch_size, num_features].
         :param y: A batch of ground truth labels, in shape [batch_size].
         :param learning_rate: Learning rate.
-        :return:
+        :return: Loss value.
         """
-        batch_size = x.shape[0]
-
         z, a = self.__ff(x)
         y_ff = a[-1]
         loss = self.__loss_fn(y_ff, y)
-        print('Loss: {:.4f}.'.format(loss))
 
         # Calculate deltas.
         deltas = [None] * self.__num_layers
@@ -88,11 +85,12 @@ class NeuralNet:
 
         # Calculate gradient and update.
         for l in range(self.__num_layers - 1, 0, -1):
-            gradient_w = np.matmul(np.transpose(a[l - 1]), deltas[l]) / batch_size
+            gradient_w = np.matmul(np.transpose(a[l - 1]), deltas[l]) / x.shape[0]  # Divided by the batch size.
             self.__w[l] -= learning_rate * gradient_w
             gradient_b = np.mean(deltas[l], axis=0)  # Reduce mean on the batch size.
             self.__b[l] -= learning_rate * gradient_b
-            print('Gradient[{}] -- w: {}, b: {}'.format(l, gradient_w, gradient_b))
+            # print('Gradient[{}] -- w: {}, b: {}'.format(l, np.mean(gradient_w), np.mean(gradient_b)))
+        return loss
 
     def ff(self, x):
         """Calculate the feed-forward result of a given input.
