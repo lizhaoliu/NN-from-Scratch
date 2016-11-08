@@ -19,6 +19,7 @@ class NeuralNet:
         num_layers = len(neurons_per_layer)
         if num_layers < 2:
             raise ValueError('There must be at least 2 layers (an input and an output layers).')
+        self.__num_layers = num_layers
 
         # Validate and set activation function.
         if activation_fn == 'relu':
@@ -45,7 +46,7 @@ class NeuralNet:
             raise ValueError('Weight decay must be non-negative: {}.'.format(weight_decay))
         self.__wd = weight_decay
 
-        self.__num_layers = num_layers
+        # Initialize weights and biases for all layers.
         self.__w, self.__b = [0], [0]  # Dummy for layer 0 (input layer).
         for i in range(1, num_layers):
             # Initialize weights for layer i, with normal random variables.
@@ -73,11 +74,13 @@ class NeuralNet:
 
         z, a = [x], [x]  # Input layer.
         for l in range(1, self.__num_layers):
-            # z(l) = a[l - 1] * W[l] + b[l].
+            # z[l] = a[l - 1] * W[l] + b[l].
             new_z = np.matmul(a[l - 1], self.__w[l]) + self.__b[l]
+            # a[l] = f(z[l]).
+            new_a = self.__activation_fn(new_z)
 
             z.append(new_z)
-            a.append(self.__activation_fn(new_z))
+            a.append(new_a)
 
         return z, a
 
@@ -87,7 +90,7 @@ class NeuralNet:
         :param x: A batch of training data, in shape [batch_size, num_features].
         :param y: A batch of ground truth labels, in shape [batch_size].
         :param learning_rate: Learning rate.
-        :return: Loss value.
+        :return: The loss value before back-propagation updates the weights and biases.
         """
         z, a = self.__ff(x)
         y_ff = a[-1]
@@ -111,7 +114,7 @@ class NeuralNet:
         return loss
 
     def ff(self, x):
-        """Calculate the feed-forward result of a given input (the last layer's output).
+        """Calculate the feed-forward result for a given input (the last layer's output).
 
         :param x: A batch of input, in shape [batch_size, num_features].
         :return: The predicted
@@ -184,7 +187,7 @@ def _square_loss(y_pred, y_label):
 
     :param y_pred: The predicted y values, in shape [batch_size, 1].
     :param y_label: The ground truth y values, in shape [batch_size, 1].
-    :return: A scalar value of total loss.
+    :return: The total loss.
     """
     if y_pred.shape != y_label.shape:
         raise ValueError("x and y must have same shape.")
@@ -205,20 +208,20 @@ def _square_loss_diff(y_pred, y_label):
 def _cross_entropy(y_pred, y_label):
     """Returns the cross entropy of predicted labels and ground truth labels.
 
-    :param y_pred: Predicted label values.
-    :param y_label: One-hot encoded label values.
-    :return:
+    :param y_pred: Predicted probabilities of each class, in shape [batch_size, num_classes].
+    :param y_label: One-hot encoded label values, in shape [batch_size, num_classes].
+    :return: The total cross entropy loss.
     """
     if y_pred.shape != y_label.shape:
-        raise ValueError("x and y must have same shape.")
-    return np.mean(np.sum(y_pred * y_label, axis=1))
+        raise ValueError("y_pred and y_label must have the same shape.")
+    return np.mean(np.sum(np.log(y_pred) * y_label, axis=1))
 
 
 def _cross_entropy_diff(y_pred, y_label):
     """Returns the differential function value (on y_pred) of predicted values and ground truth labels.
 
-    :param y_pred: Predicted label values.
-    :param y_label: One-hot encoded label values.
+    :param y_pred: Predicted probabilities of each class, in shape [batch_size, num_classes].
+    :param y_label: One-hot encoded label values, in shape [batch_size, num_classes].
     :return:
     """
     pass
